@@ -5,44 +5,95 @@ export default function Home() {
   const [data, setData] = useState([]); // State to store fetched data
   const [error, setError] = useState(null); // State to handle errors
   const [loading, setLoading] = useState(false); // State to handle loading state
+  const [newName, setNewName] = useState(""); // State to store the new name for writing to the database
 
-  const start = async () => {
-    setLoading(true); // Set loading to true when fetching starts
-    setError(null); // Reset any previous errors
+  // Initialize WeaveDB
+  const initializeDB = async () => {
+    const db = new WeaveDB({
+      contractTxId: "lw6VLVDlormmUE-iTQRSabBuPn7U_DnSI1xknWfv3zI", // Replace with your actual contractTxId
+    });
+    await db.init();
+    return db;
+  };
+
+  // Fetch data from the database
+  const fetchData = async () => {
+    setLoading(true);
+    setError(null);
 
     try {
-      // Initialize WeaveDB
-      const db = new WeaveDB({
-        contractTxId: "lw6VLVDlormmUE-iTQRSabBuPn7U_DnSI1xknWfv3zI", // Replace with your actual contractTxId
-      });
-      await db.init();
-
-      // Fetch data from the database
+      const db = await initializeDB();
       const dbData = await db.get("Questions");
 
-      // Check if dbData is an array and has elements
       if (Array.isArray(dbData) && dbData.length > 0) {
-        setData(dbData); // Update state with fetched data
+        setData(dbData);
       } else {
-        setError("No data found or data is not in the expected format."); // Handle empty or invalid data
+        setError("No data found or data is not in the expected format.");
       }
     } catch (error) {
       console.error("Failed to fetch data:", error);
-      setError("Failed to load data. Please try again later."); // Handle errors
+      setError("Failed to load data. Please try again later.");
     } finally {
-      setLoading(false); // Set loading to false when fetching is done
+      setLoading(false);
+    }
+  };
+
+  // Write data to the database
+  const writeData = async () => {
+    if (!newName.trim()) {
+      setError("Please enter a valid name.");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const db = await initializeDB();
+
+      // Add a new document to the "Questions" collection
+      await db.add({ name: newName }, "Questions");
+
+      // Clear the input field
+      setNewName("");
+
+      // Fetch updated data after writing
+      await fetchData();
+    } catch (error) {
+      console.error("Failed to write data:", error);
+      setError("Failed to write data. Please try again later.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div style={{ padding: "20px" }}>
       <h1>WeaveDB Data</h1>
-      <button onClick={start} disabled={loading}>
-        {loading ? "Loading..." : "Get Data"}
+
+      {/* Form for writing data */}
+      <div>
+        <input
+          type="text"
+          value={newName}
+          onChange={(e) => setNewName(e.target.value)}
+          placeholder="Enter a name"
+          disabled={loading}
+        />
+        <button onClick={writeData} disabled={loading}>
+          {loading ? "Writing..." : "Add Name"}
+        </button>
+      </div>
+
+      {/* Button to fetch data */}
+      <button onClick={fetchData} disabled={loading}>
+        {loading ? "Loading..." : "Refresh Data"}
       </button>
 
+      {/* Display error messages */}
       {error && <p style={{ color: "red" }}>{error}</p>}
 
+      {/* Display fetched data */}
       {data.length > 0 && (
         <div>
           <h2>Names:</h2>
