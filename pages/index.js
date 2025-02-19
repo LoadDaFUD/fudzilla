@@ -50,9 +50,10 @@ export default function Home() {
 
     try {
       const db = await initializeDB();
-
+      let myid ="id"+(data.length+1).toString()
+      console.log('myid',myid)
       // Add a new document to the "Questions" collection
-      await db.add({ name: newName }, "Questions");
+      await db.set({ name: newName }, "Questions", myid);
 
       // Clear the input field
       setNewName("");
@@ -65,6 +66,7 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
+    var g = fetchData
   };
 
   return (
